@@ -1,4 +1,6 @@
 class HomeController < ApplicationController
+  before_action :current_user, only: [:update_user]
+
   def index
     users = User.includes(:picture).all
 
@@ -11,26 +13,10 @@ class HomeController < ApplicationController
     render json: resp
   end
 
-  def index_v2
-    # TODO
-  end
-
   def update_user
-    user = User.find(params[:id])
+    current_user.update_pictures(params[:first_pic], params[:urls])
+    current_user.update_picture_items(params[:first_pic], params[:urls])
 
-    if user.picture.nil? && (params[:first_pic] || params[:urls])
-      user.create_picture!(
-        first_pic: params[:first_pic],
-        urls: params[:urls].join(",")
-      )
-    elsif user.picture
-      user.picture.update!(first_pic: params[:first_pic]) if params[:first_pic]
-      user.picture.update!(urls: params[:urls].join(",")) if params[:urls]
-    end
-
-    render json: {
-      id: user.id,
-      pictures: user.picture ? [user.picture.first_pic, user.picture.urls&.split(",")].flatten : []
-    }
+    render template: 'v2/users/update.json.jbuilder'
   end
 end

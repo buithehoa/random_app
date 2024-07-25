@@ -17,6 +17,10 @@ Rails.application.routes.draw do
   get 'users_v2' => 'home#index_v2'
   post 'update_user/:id' => 'home#update_user'
 
+  namespace :v2 do
+    resources :users, only: [:index, :update], defaults: { format: :json }
+  end
+
   # Example resource route with options:
   #   resources :products do
   #     member do

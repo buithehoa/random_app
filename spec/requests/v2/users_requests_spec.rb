@@ -1,23 +1,20 @@
 require 'rails_helper'
 
-RSpec.describe 'Home', type: :request do
+RSpec.describe V2::UsersController, type: :request do
   describe 'list of users' do
     it 'return all users' do
       10.times.each do
         user = User.create
-        user.create_picture!(
-          first_pic: 'http://foo.io/1.jpg',
-          urls: 'http://foo.io/2.jpg,http://foo.io/3.jpg'
-        )
+        user.update_picture_items('http://foo.io/1.jpg', ['http://foo.io/2.jpg', 'http://foo.io/3.jpg'])
       end
 
-      get '/users'
+      get '/v2/users'
 
       expect(response.status).to eq(200)
       expect(JSON.parse(response.body).count).to eq(10)
       expect(JSON.parse(response.body)[0]).to eq({
         "id"=>1,
-        "pic"=>["http://foo.io/1.jpg", "http://foo.io/2.jpg", "http://foo.io/3.jpg"]
+        "pictures"=>["http://foo.io/1.jpg", "http://foo.io/2.jpg", "http://foo.io/3.jpg"]
       })
     end
   end
@@ -29,17 +26,19 @@ RSpec.describe 'Home', type: :request do
         first_pic: 'http://foo.io/1.jpg',
         urls: ['http://foo.io/2.jpg', 'http://foo.io/3.jpg']
       }
-      post "/update_user/#{current_user.id}", params
+      put "/v2/users/#{current_user.id}", params
 
-      expect(Picture.count).to eq(1)
+      expect(PictureItem.count).to eq(3)
+      expect(PictureItem.find_by(first_pic: true).url).to eq('http://foo.io/1.jpg')
       expect(response.status).to eq(200)
     end
 
     it 'returns current state' do
       current_user = User.create
-      post "/update_user/#{current_user.id}"
+      put "/v2/users/#{current_user.id}"
+
       expect(response.status).to eq(200)
-      expect(response.body).to eq("{\"id\":1,\"pictures\":[]}")
+      expect(response.body).to eq({id: 1, pictures: []}.to_json)
     end
 
     it 'supports updating' do
@@ -53,12 +52,9 @@ RSpec.describe 'Home', type: :request do
         first_pic: 'http://foo.io/1.jpg',
         urls: ['http://foo.io/2.jpg']
       }
-      post "/update_user/#{current_user.id}", params
+      put "/v2/users/#{current_user.id}", params
       expect(response.status).to eq(200)
-      expect(response.body).to eq({
-        id: 1,
-        pictures: ['http://foo.io/1.jpg', 'http://foo.io/2.jpg']
-      }.to_json)
+      expect(response.body).to eq("{\"id\":1,\"pictures\":[\"http://foo.io/1.jpg\",\"http://foo.io/2.jpg\"]}")
     end
 
     it 'supports reordering' do
@@ -72,12 +68,9 @@ RSpec.describe 'Home', type: :request do
         first_pic: 'http://foo.io/3.jpg',
         urls: ['http://foo.io/2.jpg', 'http://foo.io/1.jpg']
       }
-      post "/update_user/#{current_user.id}", params
+      put "/v2/users/#{current_user.id}", params
       expect(response.status).to eq(200)
-      expect(response.body).to eq({
-        id: 1,
-        pictures: ['http://foo.io/3.jpg', 'http://foo.io/2.jpg', 'http://foo.io/1.jpg']
-      }.to_json)
+      expect(response.body).to eq("{\"id\":1,\"pictures\":[\"http://foo.io/3.jpg\",\"http://foo.io/2.jpg\",\"http://foo.io/1.jpg\"]}")
     end
   end
 end
